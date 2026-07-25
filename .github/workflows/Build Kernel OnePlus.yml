@@ -1110,7 +1110,10 @@ jobs:
 
           # IPSET & IPv6_NAT & TTL配置*
           if [ "${{ github.event.inputs.NETFILTER }}" = "true" ]; then
-            if [[ "$KERNEL_VERSION" != "6.12" && "${CPU}" != mt* ]]; then
+            # BPF_STREAM_PARSER 改变 sk_msg_* / sk_psock_* / sk_filter_trim_cap 的符号 CRC，
+            # vendor 预编译的 bluetooth.ko 与 tls.ko 会因 MODVERSIONS 校验失败而拒绝加载
+            # (实测: "bluetooth: disagrees about version of symbol sk_filter_trim_cap")
+            if [[ "$KERNEL_VERSION" != "6.12" && "${CPU}" != mt* && "${{ github.event.inputs.FILE }}" != "oneplus_ace5_pro_b" ]]; then
               set_config "CONFIG_BPF_STREAM_PARSER=y"
             fi
             set_config "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y"
