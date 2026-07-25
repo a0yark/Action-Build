@@ -460,6 +460,26 @@ jobs:
           sed -i -e '/prebuilts\/asuite"/{/ks-kernel\.lnx\.5\.0\.r3-rel/d}' -e '/tools\/tradefederation\/prebuilts"/{/ks-kernel\.lnx\.5\.0\.r3-rel/d}' ".repo/manifests/${FILE}.xml"
           repo sync -c -j$(nproc) --no-clone-bundle --no-tags --force-sync
 
+          # === PIN: PKR110 锁定到 6.6.89 (Synchronize code for OnePlus PKR110_16.0.5.701) ===
+          # 官方分支 HEAD 已推进到 16.0.9.400 / 6.6.118，与设备 vendor_dlkm 的 vermagic 不匹配
+          if [[ "$FILE" == "oneplus_ace5_pro_b" ]]; then
+            for pair in "common:386808c1de0dc56f00e7b6505a722737ed628e6f" \
+                        "msm-kernel:935636b3af4301888f6b1d137ef91647ba749f3a"; do
+              d="${pair%%:*}"; sha="${pair##*:}"
+              echo "🔒 pin kernel_platform/$d -> $sha"
+              git -C "kernel_platform/$d" fetch --depth=1 origin "$sha"
+              git -C "kernel_platform/$d" checkout -f FETCH_HEAD
+              git -C "kernel_platform/$d" log -1 --oneline
+            done
+            SUB=$(grep -m1 '^SUBLEVEL' kernel_platform/common/Makefile | tr -dc '0-9')
+            echo "🔎 SUBLEVEL=$SUB"
+            if [[ "$SUB" != "89" ]]; then
+              echo "❌ 期望 SUBLEVEL=89，实际为 $SUB，终止构建"
+              exit 1
+            fi
+            echo "✅ 已锁定到 6.6.89"
+          fi
+
           KERNEL_REPOS=""
           KERNEL_REPOS_PATH=$(find . -type f -name "build.config.msm.common" | head -n 1)
           if [[ -n "$KERNEL_REPOS_PATH" ]]; then
